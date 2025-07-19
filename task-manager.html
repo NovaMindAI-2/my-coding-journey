@@ -117,10 +117,23 @@
             background-color: #007bff;
             color: white;
         }
+        .task-counter {
+            background-color: #f0f0f0;
+            padding: 12px 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 16px;
+            text-align: center;
+            color: #333;
+        }
     </style>
 </head>
 <body>
     <h1>My Task Manager</h1>
+    
+    <div class="task-counter">
+        Total: 0 tasks, 0 completed, 0 active
+    </div>
     
     <div class="input-section">
         <input type="text" class="task-input" placeholder="Enter a new task..." />
@@ -148,6 +161,7 @@
         const addButton = document.querySelector('.add-button');
         const taskList = document.querySelector('.task-list');
         const taskCategory = document.querySelector('.task-category');
+        const taskCounter = document.querySelector('.task-counter');
         
         // STEP 2: Create storage for all our tasks
         let tasks = [];           // Array to hold all task objects
@@ -222,8 +236,20 @@
             renderTasks();
         }
         
+        // Function to update task counter
+        function updateTaskCounter() {
+            const totalTasks = tasks.length;
+            const completedTasks = tasks.filter(task => task.completed).length;
+            const activeTasks = totalTasks - completedTasks;
+            
+            taskCounter.textContent = `Total: ${totalTasks} task${totalTasks !== 1 ? 's' : ''}, ${completedTasks} completed, ${activeTasks} active`;
+        }
+        
         // STEP 7: Function to display all tasks on the page
         function renderTasks() {
+            // Update the task counter
+            updateTaskCounter();
+            
             // First, figure out which tasks to show based on current filter
             let filteredTasks = tasks;
             
