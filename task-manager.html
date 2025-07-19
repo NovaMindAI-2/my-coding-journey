@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Interactive Task Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        
+        .input-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        
+        .task-input {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .task-category {
+            padding: 10px 35px 10px 10px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            min-width: 150px;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 20px;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+        
+        .add-button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            white-space: nowrap;
+        }
+        
+        .task-item {
+            background-color: #f9f9f9;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .task-category-label {
+            display: inline-block;
+            padding: 10px 8px;
+            margin-right: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .category-work {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .category-personal {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+        }
+        
+        .category-workout {
+            background-color: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .task-item.completed {
+            background-color: #e8f5e8;
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        
+        .delete-button {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .filter-buttons {
+            margin: 20px 0;
+        }
+        
+        .filter-button {
+            padding: 8px 16px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            background-color: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .filter-button.active {
+            background-color: #007bff;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>My Task Manager</h1>
+    
+    <div class="input-section">
+        <input type="text" class="task-input" placeholder="Enter a new task..." />
+        <select class="task-category">
+            <option value="work">Work Task</option>
+            <option value="personal">Personal Task</option>
+            <option value="workout">Workout Task</option>
+        </select>
+        <button class="add-button">Add Task</button>
+    </div>
+    
+    <div class="filter-buttons">
+        <button class="filter-button active" data-filter="all">All</button>
+        <button class="filter-button" data-filter="active">Active</button>
+        <button class="filter-button" data-filter="completed">Completed</button>
+    </div>
+    
+    <div class="task-list">
+        <!-- Tasks will be added here dynamically by JavaScript -->
+    </div>
+
+    <script>
+        // STEP 1: Get control of HTML elements (using querySelector)
+        const taskInput = document.querySelector('.task-input');
+        const addButton = document.querySelector('.add-button');
+        const taskList = document.querySelector('.task-list');
+        const taskCategory = document.querySelector('.task-category');
+        
+        // STEP 2: Create storage for all our tasks
+        let tasks = [];           // Array to hold all task objects
+        let nextId = 1;          // Counter for giving each task a unique ID
+        let currentFilter = 'all'; // Keep track of which filter is active
+        
+        // STEP 3: Function to add a new task
+        function addTask() {
+            // Get what the user typed in the text box
+            const taskText = taskInput.value.trim();
+            
+            // Check if they actually typed something
+            if (taskText === '') {
+                alert('Please enter a task!');
+                return; // Stop the function if empty
+            }
+            
+            // Create a task object (like a record card)
+            const task = {
+                id: nextId++,          // Give it a unique number
+                text: taskText,        // Store what they typed
+                completed: false,      // Mark as not done yet
+                category: taskCategory.value  // Store the selected category
+            };
+            
+            // Add this task to our array of tasks
+            tasks.push(task);
+            
+            // Clear the text box so user can type next task
+            taskInput.value = '';
+            
+            // Update the display to show all tasks
+            renderTasks();
+            
+            console.log('Task added:', task);
+            console.log('All tasks:', tasks);
+        }
+        
+        // STEP 4: Function to toggle task completion (mark done/undone)
+        function toggleTask(id) {
+            // Find the task with this ID in our tasks array
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                // Flip the completed status (true becomes false, false becomes true)
+                task.completed = !task.completed;
+                // Update the display
+                renderTasks();
+                console.log('Task toggled:', task);
+            }
+        }
+        
+        // STEP 5: Function to delete a task
+        function deleteTask(id) {
+            // Remove the task with this ID from our tasks array
+            tasks = tasks.filter(t => t.id !== id);
+            // Update the display
+            renderTasks();
+            console.log('Task deleted. Remaining tasks:', tasks);
+        }
+        
+        // STEP 6: Function to filter tasks (show all/active/completed)
+        function filterTasks(filter) {
+            currentFilter = filter;
+            
+            // Update which filter button looks "active"
+            document.querySelectorAll('.filter-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+            
+            // Re-render tasks with the new filter
+            renderTasks();
+        }
+        
+        // STEP 7: Function to display all tasks on the page
+        function renderTasks() {
+            // First, figure out which tasks to show based on current filter
+            let filteredTasks = tasks;
+            
+            if (currentFilter === 'active') {
+                filteredTasks = tasks.filter(task => !task.completed);
+            } else if (currentFilter === 'completed') {
+                filteredTasks = tasks.filter(task => task.completed);
+            }
+            // If currentFilter is 'all', we show all tasks (no filtering needed)
+            
+            // Clear the current task list (remove all existing task elements)
+            taskList.innerHTML = '';
+            
+            // Create HTML for each task and add it to the page
+            filteredTasks.forEach(task => {
+                // Create a new div element for this task
+                const taskElement = document.createElement('div');
+                
+                // Give it the right CSS class (task-item, and maybe completed)
+                taskElement.className = `task-item ${task.completed ? 'completed' : ''}`;
+                
+                // Put the content inside the div
+                taskElement.innerHTML = `
+                    <div style="display: flex; align-items: center; flex: 1;">
+                        <span class="task-category-label category-${task.category}">
+                            ${task.category.charAt(0).toUpperCase() + task.category.slice(1)}
+                        </span>
+                        <span onclick="toggleTask(${task.id})" style="cursor: pointer;">
+                            ${task.text}
+                        </span>
+                    </div>
+                    <button class="delete-button" onclick="deleteTask(${task.id})">
+                        Delete
+                    </button>
+                `;
+                
+                // Add this task element to the task list on the page
+                taskList.appendChild(taskElement);
+            });
+        }
+        
+        // STEP 8: Set up event listeners (make buttons work when clicked)
+        
+        // Make the "Add Task" button work
+        addButton.addEventListener('click', addTask);
+        
+        // Allow Enter key to add task (when user presses Enter in text box)
+        taskInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addTask();
+            }
+        });
+        
+        // Make filter buttons work
+        document.querySelectorAll('.filter-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const filter = this.getAttribute('data-filter');
+                filterTasks(filter);
+            });
+        });
+        
+        console.log("Task Manager loaded and ready!");
+    </script>
+</body>
+</html>
