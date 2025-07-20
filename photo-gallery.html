@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Interactive Photo Gallery</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        .gallery-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .photo-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .photo-item:hover {
+            transform: scale(1.05);
+        }
+
+        .photo-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .photo-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            color: white;
+            padding: 20px 10px 10px;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .photo-item:hover .photo-overlay {
+            transform: translateY(0);
+        }
+
+        /* Lightbox styles */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            z-index: 1000;
+        }
+
+        .lightbox.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lightbox-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .lightbox-content img {
+            width: 100%;
+            height: auto;
+            max-height: 80vh;
+            object-fit: contain;
+        }
+
+        .lightbox-caption {
+            text-align: center;
+            padding: 10px;
+            color: white;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            font-size: 40px;
+            color: white;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .close-button:hover {
+            color: #ff6b6b;
+        }
+
+        .nav-button {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 30px;
+            color: white;
+            cursor: pointer;
+            padding: 10px 20px;
+            background-color: rgba(0,0,0,0.5);
+            transition: background-color 0.3s;
+        }
+
+        .nav-button:hover {
+            background-color: rgba(0,0,0,0.8);
+        }
+
+        .prev-button {
+            left: 20px;
+        }
+
+        .next-button {
+            right: 20px;
+        }
+
+        /* Filter buttons */
+        .filter-buttons {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .filter-button {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 0 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .filter-button:hover {
+            background-color: #555;
+        }
+
+        .filter-button.active {
+            background-color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="gallery-container">
+        <h1>My Photo Gallery</h1>
+        
+        <div class="filter-buttons">
+            <button class="filter-button active" data-filter="all">All</button>
+            <button class="filter-button" data-filter="nature">Nature</button>
+            <button class="filter-button" data-filter="city">City</button>
+            <button class="filter-button" data-filter="people">People</button>
+        </div>
+
+        <div class="gallery-grid" id="galleryGrid">
+            <!-- Photos will be added here dynamically -->
+        </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox">
+        <span class="close-button" id="closeButton">&times;</span>
+        <span class="nav-button prev-button" id="prevButton">&#10094;</span>
+        <span class="nav-button next-button" id="nextButton">&#10095;</span>
+        <div class="lightbox-content">
+            <img id="lightboxImage" src="" alt="">
+            <div class="lightbox-caption" id="lightboxCaption"></div>
+        </div>
+    </div>
+
+    <script>
+        // Photo data - in real app, this would come from a database
+        const photos = [
+            { id: 1, src: 'https://picsum.photos/400/300?random=1', caption: 'Mountain Sunrise', category: 'nature' },
+            { id: 2, src: 'https://picsum.photos/400/300?random=2', caption: 'City Lights', category: 'city' },
+            { id: 3, src: 'https://picsum.photos/400/300?random=3', caption: 'Forest Path', category: 'nature' },
+            { id: 4, src: 'https://picsum.photos/400/300?random=4', caption: 'Street Photography', category: 'people' },
+            { id: 5, src: 'https://picsum.photos/400/300?random=5', caption: 'Ocean Waves', category: 'nature' },
+            { id: 6, src: 'https://picsum.photos/400/300?random=6', caption: 'Urban Architecture', category: 'city' },
+            { id: 7, src: 'https://picsum.photos/400/300?random=7', caption: 'Portrait Session', category: 'people' },
+            { id: 8, src: 'https://picsum.photos/400/300?random=8', caption: 'Sunset Beach', category: 'nature' }
+        ];
+
+        let currentPhotoIndex = 0;
+        let currentFilter = 'all';
+        let filteredPhotos = [...photos];
+
+        // Initialize gallery
+        function initGallery() {
+            renderGallery();
+            setupFilterButtons();
+            setupLightboxEvents();
+            setupKeyboardNavigation();
+        }
+
+        // Render photo grid
+        function renderGallery() {
+            const galleryGrid = document.getElementById('galleryGrid');
+            galleryGrid.innerHTML = '';
+
+            filteredPhotos.forEach((photo, index) => {
+                const photoItem = document.createElement('div');
+                photoItem.className = 'photo-item';
+                photoItem.setAttribute('data-index', index);
+                
+                photoItem.innerHTML = `
+                    <img src="${photo.src}" alt="${photo.caption}">
+                    <div class="photo-overlay">
+                        <p>${photo.caption}</p>
+                    </div>
+                `;
+
+                // Click event to open lightbox
+                photoItem.addEventListener('click', function() {
+                    openLightbox(index);
+                });
+
+                galleryGrid.appendChild(photoItem);
+            });
+        }
+
+        // Filter functionality
+        function setupFilterButtons() {
+            const filterButtons = document.querySelectorAll('.filter-button');
+            
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Update active state
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Filter photos
+                    currentFilter = this.getAttribute('data-filter');
+                    if (currentFilter === 'all') {
+                        filteredPhotos = [...photos];
+                    } else {
+                        filteredPhotos = photos.filter(photo => photo.category === currentFilter);
+                    }
+                    
+                    renderGallery();
+                });
+            });
+        }
+
+        // Lightbox functions
+        function openLightbox(index) {
+            currentPhotoIndex = index;
+            const photo = filteredPhotos[currentPhotoIndex];
+            
+            document.getElementById('lightboxImage').src = photo.src;
+            document.getElementById('lightboxCaption').textContent = photo.caption;
+            document.getElementById('lightbox').classList.add('active');
+            
+            // Prevent body scroll when lightbox is open
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        function navigatePhoto(direction) {
+            currentPhotoIndex += direction;
+            
+            // Wrap around
+            if (currentPhotoIndex >= filteredPhotos.length) {
+                currentPhotoIndex = 0;
+            } else if (currentPhotoIndex < 0) {
+                currentPhotoIndex = filteredPhotos.length - 1;
+            }
+            
+            const photo = filteredPhotos[currentPhotoIndex];
+            document.getElementById('lightboxImage').src = photo.src;
+            document.getElementById('lightboxCaption').textContent = photo.caption;
+        }
+
+        // Setup lightbox events
+        function setupLightboxEvents() {
+            // Close button
+            document.getElementById('closeButton').addEventListener('click', closeLightbox);
+            
+            // Navigation buttons
+            document.getElementById('prevButton').addEventListener('click', function() {
+                navigatePhoto(-1);
+            });
+            
+            document.getElementById('nextButton').addEventListener('click', function() {
+                navigatePhoto(1);
+            });
+            
+            // Click outside image to close
+            document.getElementById('lightbox').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeLightbox();
+                }
+            });
+        }
+
+        // Keyboard navigation
+        function setupKeyboardNavigation() {
+            document.addEventListener('keydown', function(e) {
+                if (!document.getElementById('lightbox').classList.contains('active')) {
+                    return;
+                }
+                
+                switch(e.key) {
+                    case 'Escape':
+                        closeLightbox();
+                        break;
+                    case 'ArrowLeft':
+                        navigatePhoto(-1);
+                        break;
+                    case 'ArrowRight':
+                        navigatePhoto(1);
+                        break;
+                }
+            });
+        }
+
+        // Initialize when page loads
+        initGallery();
+    </script>
+</body>
+</html>
